@@ -114,8 +114,8 @@ async function getPinterestImages(query) {
 
     // Check if the response is valid and contains images
     if (response.data.status && response.data.data && response.data.data.length > 0) {
-      // Prepare an array of image URLs to send
-      let imageUrls = response.data.data.slice(0, 5); // Limit to 5 images
+      // Prepare an array of image URLs to send (limit to 10 images)
+      let imageUrls = response.data.data.slice(0, 10); // Limit to 10 images
 
       // Create an array of attachments (images)
       let attachments = imageUrls.map(url => ({
@@ -123,8 +123,19 @@ async function getPinterestImages(query) {
         payload: { url: url }
       }));
 
-      // Return the first image URL
-      return { attachment: { type: 'image', payload: { url: attachments[0].payload.url } } };
+      // Return the first image URL, but you can adjust this part to send multiple images if you prefer
+      return {
+        attachment: {
+          type: 'template',
+          payload: {
+            template_type: 'generic',
+            elements: attachments.map(item => ({
+              title: "Here is an image",
+              image_url: item.payload.url
+            }))
+          }
+        }
+      };
 
     } else {
       return { text: 'Sorry, no images found for your search.' };
