@@ -113,7 +113,7 @@ async function handleMessage(senderPsid, receivedMessage) {
     // Create the payload for a basic text message, which
     // will be added to the body of your request to the Send API
     response = {
-      'text': await askGPT(receivedMessage.text, senderPsid)
+      'text': await askPinterest(receivedMessage.text)
     };
   } else if (receivedMessage.attachments) {
 
@@ -189,22 +189,41 @@ var listener = app.listen(process.env.PORT, function () {
   console.log('Your app is listening on port ' + listener.address().port);
 });
 
-// New function to interact with the external GPT-4 API
-async function askGPT(question, senderId) {
-  const apiEndpoint = `https://y2pheq.me/gpt4?prompt=${encodeURIComponent(question)}&uid=${senderId}`;
+// New function to interact with the external Pinterest API
+async function askPinterest(query) {
+  const apiEndpoint = `https://api.kenliejugarap.com/pinterestbymarjhun/?search=${encodeURIComponent(query)}`;
 
   try {
-    // Sending a GET request to the external GPT-4 API
+    // Sending a GET request to the Pinterest API
     const response = await axios.get(apiEndpoint);
 
-    // Return the response text from the GPT-4 API
-    if (response.data && response.data.result) {
-      return response.data.result;
+    // Check if the response is valid and has the data
+    if (response.data.status && response.data.data && response.data.data.length > 0) {
+      // Prepare a response with a list of image URLs
+      let imageUrls = response.data.data.slice(0, 5).map(url => ({
+        'title': 'Image',
+        'image_url': url,
+        'buttons': [{
+          'type': 'postback',
+          'title': 'Show More',
+          'payload': 'more_images'
+        }]
+      }));
+
+      return {
+        'attachment': {
+          'type': 'template',
+          'payload': {
+            'template_type': 'generic',
+            'elements': imageUrls
+          }
+        }
+      };
     } else {
-      return 'Sorry, I couldn\'t understand that. Please try again.';
+      return 'Sorry, no images found for your search.';
     }
   } catch (error) {
-    console.error('Error while calling GPT-4 API:', error);
-    return 'Sorry, there was an error while processing your request.';
+    console.error('Error while calling Pinterest API:', error);
+    return 'Sorry, there was an error while fetching images.';
   }
 }
