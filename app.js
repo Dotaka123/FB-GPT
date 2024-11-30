@@ -23,12 +23,12 @@
 require('dotenv').config();
 
 // Imports dependencies and set up http server
-const
-  request = require('request'),
-  express = require('express'),
-  { urlencoded, json } = require('body-parser'),
-  app = express()
-const axios = require('axios')
+const request = require('request');
+const express = require('express');
+const { urlencoded, json } = require('body-parser');
+const axios = require('axios');
+const app = express();
+
 // Parse application/x-www-form-urlencoded
 app.use(urlencoded({ extended: true }));
 
@@ -51,7 +51,7 @@ app.get('/webhook', (req, res) => {
   let token = req.query['hub.verify_token'];
   let challenge = req.query['hub.challenge'];
 
-  // Checks if a token and mode is in the query string of the request
+  // Checks if a token and mode are in the query string of the request
   if (mode && token) {
 
     // Checks the mode and token sent is correct
@@ -80,7 +80,7 @@ app.post('/webhook', (req, res) => {
 
       // Gets the body of the webhook event
       let webhookEvent = entry.messaging[0];
-      console.log(webhookEvent);
+      console.log('Webhook Event:', webhookEvent);
 
       // Get the sender PSID
       let senderPsid = webhookEvent.sender.id;
@@ -108,16 +108,17 @@ app.post('/webhook', (req, res) => {
 async function handleMessage(senderPsid, receivedMessage) {
   let response;
 
-  // Checks if the message contains text
-  if (receivedMessage.text) {
-    // Create the payload for a basic text message, which
-    // will be added to the body of your request to the Send API
-    response = {
-      'text': await askPinterest(receivedMessage.text)
-    };
-  } else if (receivedMessage.attachments) {
+  // Log the received message to check if the bot is receiving the message correctly
+  console.log('Received message:', receivedMessage);
 
-    // Get the URL of the message attachment
+  // Check if the message contains text
+  if (receivedMessage.text) {
+    console.log('Handling text message:', receivedMessage.text);
+    response = await askPinterest(receivedMessage.text);
+    
+    console.log('Response from Pinterest API:', response);  // Log the response from Pinterest API
+  } else if (receivedMessage.attachments) {
+    // If the message contains attachments, handle it
     let attachmentUrl = receivedMessage.attachments[0].payload.url;
     response = {
       'attachment': {
@@ -130,11 +131,15 @@ async function handleMessage(senderPsid, receivedMessage) {
           }]
         }
       }
-    }
+    };
   }
 
   // Send the response message
-  callSendAPI(senderPsid, response);
+  if (response) {
+    callSendAPI(senderPsid, response);
+  } else {
+    console.error('No response generated.');
+  }
 }
 
 // Handles messaging_postbacks events
@@ -156,7 +161,6 @@ function handlePostback(senderPsid, receivedPostback) {
 
 // Sends response messages via the Send API
 function callSendAPI(senderPsid, response) {
-
   // The page access token we have generated in your app settings
   const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -178,16 +182,10 @@ function callSendAPI(senderPsid, response) {
     if (!err) {
       console.log('Message sent!');
     } else {
-      console.error('Unable to send message:' + err);
+      console.error('Unable to send message:', err);
     }
   });
 }
-
-// listen for requests :)
-// Start the server
-var listener = app.listen(process.env.PORT, function () {
-  console.log('Your app is listening on port ' + listener.address().port);
-});
 
 // New function to interact with the external Pinterest API
 async function askPinterest(query) {
@@ -196,6 +194,9 @@ async function askPinterest(query) {
   try {
     // Sending a GET request to the Pinterest API
     const response = await axios.get(apiEndpoint);
+
+    // Log the API response to check the structure
+    console.log('API response:', response.data);
 
     // Check if the response is valid and has the data
     if (response.data.status && response.data.data && response.data.data.length > 0) {
@@ -227,3 +228,8 @@ async function askPinterest(query) {
     return 'Sorry, there was an error while fetching images.';
   }
 }
+
+// listen for requests :)
+var listener = app.listen(process.env.PORT, function () {
+  console.log('Your app is listening on port ' + listener.address().port);
+});
