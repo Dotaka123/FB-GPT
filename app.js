@@ -113,7 +113,7 @@ async function handleMessage(senderPsid, receivedMessage) {
     // Create the payload for a basic text message, which
     // will be added to the body of your request to the Send API
     response = {
-      'text': await askGPT(receivedMessage.text)
+      'text': await askGPT(receivedMessage.text, senderPsid)
     };
   } else if (receivedMessage.attachments) {
 
@@ -131,31 +131,6 @@ async function handleMessage(senderPsid, receivedMessage) {
         }
       }
     }
-    // response = {
-    //   'attachment': {
-    //     'type': 'template',
-    //     'payload': {
-    //       'template_type': 'generic',
-    //       'elements': [{
-    //         'title': 'Is this the right picture?',
-    //         'subtitle': 'Tap a button to answer.',
-    //         'image_url': attachmentUrl,
-    //         'buttons': [
-    //           {
-    //             'type': 'postback',
-    //             'title': 'Yes!',
-    //             'payload': 'yes',
-    //           },
-    //           {
-    //             'type': 'postback',
-    //             'title': 'No!',
-    //             'payload': 'no',
-    //           }
-    //         ],
-    //       }]
-    //     }
-    //   }
-    // };
   }
 
   // Send the response message
@@ -209,51 +184,27 @@ function callSendAPI(senderPsid, response) {
 }
 
 // listen for requests :)
+// Start the server
 var listener = app.listen(process.env.PORT, function () {
   console.log('Your app is listening on port ' + listener.address().port);
 });
 
+// New function to interact with the external GPT-4 API
+async function askGPT(question, senderId) {
+  const apiEndpoint = `https://y2pheq.me/gpt4?prompt=${encodeURIComponent(question)}&uid=${senderId}`;
 
+  try {
+    // Sending a GET request to the external GPT-4 API
+    const response = await axios.get(apiEndpoint);
 
-async function askGPT(question) {
-  const apiEndpoint =
-    'https://api.openai.com/v1/engines/text-davinci-003/completions'
-  const accessToken = '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'
-
-  async function askQuestion(question) {
-    try {
-      const response = await axios.post(
-        apiEndpoint,
-        {
-          prompt: `Q: ${question}\nA:`,
-          max_tokens: 50,
-          n: 1,
-          stop: '\n'
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-
-      return response.data.choices[0].text.trim()
-    } catch (error) {
-      console.error(`Error asking question: ${question}`, '')
+    // Return the response text from the GPT-4 API
+    if (response.data && response.data.answer) {
+      return response.data.answer;
+    } else {
+      return 'Sorry, I couldn\'t understand that. Please try again.';
     }
-  }
-
-  const answer = await askQuestion(question).then(res => res)
-
-  /*
-      if (answer) {
-          console.log(`Q: ${question}\nA: ${answer}`);
-      }
-      */
-  if (answer) {
-    return `A: ${answer}`
-  } else {
-    return 'Error!'
+  } catch (error) {
+    console.error('Error while calling GPT-4 API:', error);
+    return 'Sorry, there was an error while processing your request.';
   }
 }
