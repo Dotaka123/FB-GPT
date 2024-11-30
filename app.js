@@ -198,8 +198,8 @@ async function askGPT(question, senderId) {
     const response = await axios.get(apiEndpoint);
 
     // Return the response text from the GPT-4 API
-    if (response.data && response.data.answer) {
-      return response.data.answer;
+    if (response.data && response.data.result) {
+      return response.data.result;
     } else {
       return 'Sorry, I couldn\'t understand that. Please try again.';
     }
