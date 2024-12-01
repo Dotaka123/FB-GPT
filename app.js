@@ -56,49 +56,94 @@ app.post('/webhook', (req, res) => {
 
 // Handles messages events
 async function handleMessage(senderPsid, receivedMessage) {
-  let response;
-
   // Log the received message
   console.log('Received message:', receivedMessage);
 
   // If the message contains text, search Pinterest for images
   if (receivedMessage.text) {
     console.log('Handling text message:', receivedMessage.text);
-    response = await getPinterestImages(receivedMessage.text);
-  }
+    const images = await getPinterestImages(receivedMessage.text);
 
-  // Send the response message
-  if (response) {
-    callSendAPI(senderPsid, response);
-  } else {
-    console.error('No response generated.');
+    if (images && images.length > 0) {
+      for (const imageUrl of images) {
+        await sendImage(senderPsid, imageUrl);
+      }
+    } else {
+      await sendText(senderPsid, 'Désolé, aucune image trouvée pour votre recherche.');
+    }
   }
 }
 
 // Sends response messages via the Send API
-function callSendAPI(senderPsid, response) {
+function sendText(senderPsid, text) {
   const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
-  // Construct the message body
-  let requestBody = {
+  const requestBody = {
     recipient: {
-      id: senderPsid
+      id: senderPsid,
     },
-    message: response
+    message: {
+      text,
+    },
   };
 
-  // Send the HTTP request to the Messenger Platform
-  request({
-    uri: 'https://graph.facebook.com/v2.6/me/messages',
-    qs: { access_token: PAGE_ACCESS_TOKEN },
-    method: 'POST',
-    json: requestBody
-  }, (err, _res, _body) => {
-    if (!err) {
-      console.log('Message sent!');
-    } else {
-      console.error('Unable to send message:', err);
-    }
+  return new Promise((resolve, reject) => {
+    request(
+      {
+        uri: 'https://graph.facebook.com/v2.6/me/messages',
+        qs: { access_token: PAGE_ACCESS_TOKEN },
+        method: 'POST',
+        json: requestBody,
+      },
+      (err, _res, _body) => {
+        if (!err) {
+          console.log('Text message sent!');
+          resolve();
+        } else {
+          console.error('Unable to send text message:', err);
+          reject(err);
+        }
+      }
+    );
+  });
+}
+
+function sendImage(senderPsid, imageUrl) {
+  const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+
+  const requestBody = {
+    recipient: {
+      id: senderPsid,
+    },
+    message: {
+      attachment: {
+        type: 'image',
+        payload: {
+          url: imageUrl,
+          is_reusable: true,
+        },
+      },
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    request(
+      {
+        uri: 'https://graph.facebook.com/v2.6/me/messages',
+        qs: { access_token: PAGE_ACCESS_TOKEN },
+        method: 'POST',
+        json: requestBody,
+      },
+      (err, _res, _body) => {
+        if (!err) {
+          console.log('Image sent!');
+          resolve();
+        } else {
+          console.error('Unable to send image:', err);
+          reject(err);
+        }
+      }
+    );
   });
 }
 
@@ -107,42 +152,17 @@ async function getPinterestImages(query) {
   const apiEndpoint = `https://api.kenliejugarap.com/pinterestbymarjhun/?search=${encodeURIComponent(query)}`;
 
   try {
-    // Send a GET request to the Pinterest API
     const response = await axios.get(apiEndpoint);
-
     console.log('API response:', response.data);
 
-    // Check if the response is valid and contains images
     if (response.data.status && response.data.data && response.data.data.length > 0) {
-      // Prepare an array of image URLs to send (limit to 10 images)
-      let imageUrls = response.data.data.slice(0, 10); // Limit to 10 images
-
-      // Create an array of attachments (images)
-      let attachments = imageUrls.map(url => ({
-        type: 'image',
-        payload: { url: url }
-      }));
-
-      // Return the first image URL, but you can adjust this part to send multiple images if you prefer
-      return {
-        attachment: {
-          type: 'template',
-          payload: {
-            template_type: 'generic',
-            elements: attachments.map(item => ({
-              title: "Here is an image",
-              image_url: item.payload.url
-            }))
-          }
-        }
-      };
-
-    } else {
-      return { text: 'Sorry, no images found for your search.' };
+      // Return up to 10 image URLs
+      return response.data.data.slice(0, 10);
     }
+    return null;
   } catch (error) {
     console.error('Error calling Pinterest API:', error);
-    return { text: 'Sorry, there was an error fetching images.' };
+    return null;
   }
 }
 
