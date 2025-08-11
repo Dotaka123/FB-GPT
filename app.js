@@ -4,7 +4,6 @@ const express = require("express");
 const request = require("request");
 const axios = require("axios");
 const { json, urlencoded } = require("body-parser");
-const path = require("path");
 
 // Create the Express app
 const app = express();
@@ -13,9 +12,9 @@ const app = express();
 app.use(urlencoded({ extended: true }));
 app.use(json());
 
-// Serve HTML on the root path (for Koyeb and status check)
+// Respond with 'Hello World' for GET requests to the homepage
 app.get("/", function (_req, res) {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.send("Hello World");
 });
 
 // Webhook verification endpoint
@@ -60,17 +59,17 @@ app.post("/webhook", (req, res) => {
 async function handlePierreMessage(senderPsid, userMessage) {
   console.log("Received from user:", userMessage);
 
-  const pierrePrompt = `
+  const pierrePrompt = 
 Tu es Pierre, le disciple de Jésus. Tu parles avec passion, honnêteté brute et un cœur brûlant de foi.
 Tu n’es pas parfait, parfois impulsif, mais tu es toujours authentique, courageux et fidèle.
 Tu défends la vérité avec ardeur, tu corriges avec amour, et tu encourages avec feu.
 Tu as été brisé mais rebâti par le Christ.
 Voici ce qu'on te dit : "${userMessage}"
 Réponds comme Pierre le ferait, avec intensité, sincérité, foi, et des mots simples mais puissants.
-  `.trim();
+  .trim();
 
   const uid = senderPsid;
-  const apiUrl = `https://kaiz-apis.gleeze.com/api/gpt-4o?ask=${encodeURIComponent(pierrePrompt)}&uid=${uid}&webSearch=off&apikey=f51ff2be-342c-4c5d-afce-b1bfe52f7fe6`;
+  const apiUrl = https://kaiz-apis.gleeze.com/api/gpt-4o?ask=${encodeURIComponent(pierrePrompt)}&uid=${uid}&webSearch=off&apikey=f51ff2be-342c-4c5d-afce-b1bfe52f7fe6;
 
   try {
     const response = await axios.get(apiUrl);
@@ -79,14 +78,14 @@ Réponds comme Pierre le ferait, avec intensité, sincérité, foi, et des mots 
       "Je ressens l’Esprit, mais il me manque des mots.";
     const miandry = "Un instant, je prie pour trouver les mots...";
     await sendText(senderPsid, miandry);
-    const message = `✝️ *Parole de Pierre* :\n${reply}`;
+    const message = ✝️ *Parole de Pierre* :\n${reply};
 
     await sendText(senderPsid, message);
   } catch (error) {
     console.error("Erreur API Pierre :", error.message);
     await sendText(
       senderPsid,
-      "Même Pierre a douté… mais il n’a jamais abandonné. Garde la foi, frère !"
+      "Même Pierre a douté… mais il n’a jamais abandonné. Garde la foi, frère !",
     );
   }
 }
@@ -116,12 +115,12 @@ function sendText(senderPsid, text) {
           console.error("Erreur envoi message :", err);
           reject(err);
         }
-      }
+      },
     );
   });
 }
 
 // Start the Express server
-const listener = app.listen(process.env.PORT || 3000, function () {
+const listener = app.listen(process.env.PORT, function () {
   console.log("Votre bot est en ligne sur le port " + listener.address().port);
 });
