@@ -4,6 +4,7 @@ const express = require("express");
 const request = require("request");
 const axios = require("axios");
 const { json, urlencoded } = require("body-parser");
+const path = require("path");
 
 // Create the Express app
 const app = express();
@@ -12,9 +13,9 @@ const app = express();
 app.use(urlencoded({ extended: true }));
 app.use(json());
 
-// Respond with 'Hello World' for GET requests to the homepage
+// Serve HTML on the root path (for Koyeb and status check)
 app.get("/", function (_req, res) {
-  res.send("Hello World");
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // Webhook verification endpoint
@@ -85,7 +86,7 @@ Réponds comme Pierre le ferait, avec intensité, sincérité, foi, et des mots 
     console.error("Erreur API Pierre :", error.message);
     await sendText(
       senderPsid,
-      "Même Pierre a douté… mais il n’a jamais abandonné. Garde la foi, frère !",
+      "Même Pierre a douté… mais il n’a jamais abandonné. Garde la foi, frère !"
     );
   }
 }
@@ -115,12 +116,12 @@ function sendText(senderPsid, text) {
           console.error("Erreur envoi message :", err);
           reject(err);
         }
-      },
+      }
     );
   });
 }
 
 // Start the Express server
-const listener = app.listen(process.env.PORT, function () {
+const listener = app.listen(process.env.PORT || 3000, function () {
   console.log("Votre bot est en ligne sur le port " + listener.address().port);
 });
